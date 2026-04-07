@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ColorPaletteGenerator - 配色方案生成器</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:-apple-system,'Segoe UI',sans-serif;background:#0f172a;color:#e2e8f0;min-height:100vh;}
+.app{max-width:800px;margin:0 auto;padding:20px;}
+.header{text-align:center;margin-bottom:20px;}
+.header h1{font-size:1.5em;} .header h1 span{color:#f472b6;}
+.card{background:#1e293b;border-radius:12px;padding:20px;margin-bottom:16px;}
+.card h2{font-size:14px;color:#94a3b8;margin-bottom:12px;}
+.palette{display:flex;border-radius:12px;overflow:hidden;min-height:100px;margin-bottom:16px;}
+.palette-color{flex:1;cursor:pointer;display:flex;align-items:flex-end;padding:8px;transition:flex 0.3s;}
+.palette-color:hover{flex:2;}
+.palette-color span{font-size:11px;background:rgba(0,0,0,0.5);padding:4px 8px;border-radius:4px;color:#fff;}
+.btn{padding:12px 24px;background:#f472b6;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:14px;font-weight:500;margin:8px 8px 8px 0;}
+.palettes-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin-top:16px;}
+.mini-palette{border-radius:8px;overflow:hidden;height:50px;cursor:pointer;display:flex;}
+.mini-palette div{flex:1;}
+.mini-palette:hover{transform:scale(1.02);}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="header"><h1>Color<span>Palette</span></h1></div>
+  
+  <div class="card">
+    <h2>当前配色</h2>
+    <div class="palette" id="palette"></div>
+    <button class="btn" onclick="generate()">生成新配色</button>
+    <button class="btn" onclick="lockPalette()">锁定</button>
+  </div>
+  
+  <div class="card">
+    <h2>预设方案</h2>
+    <div class="palettes-grid" id="presets"></div>
+  </div>
+</div>
+
+<script>
+const locked = [];
+
+function randColor() {
+  const h = Math.floor(Math.random() * 360);
+  const s = 40 + Math.floor(Math.random() * 40);
+  const l = 30 + Math.floor(Math.random() * 40);
+  return hslToHex(h, s, l);
+}
+
+function hslToHex(h,s,l) {
+  s/=100; l/=100;
+  const a=s*Math.min(l,1-l);
+  const f=n=>{const k=(n+h/30)%12;const color=l-a*Math.max(Math.min(k-3,9-k,1),-1);return Math.round(255*color).toString(16).padStart(2,'0');};
+  return `#${f(0)}${f(8)}${f(4)}`;
+}
+
+function renderPalette(colors) {
+  document.getElementById('palette').innerHTML = colors.map((c,i) => 
+    `<div class="palette-color" style="background:${c}" onclick="copy('${c}')"><span>${c}</span></div>`
+  ).join('');
+}
+
+function generate() {
+  const colors = [];
+  for (let i = 0; i < 5; i++) {
+    colors.push(locked[i] || randColor());
+  }
+  renderPalette(colors);
+  updatePresets();
+}
+
+function lockPalette() {
+  const els = document.querySelectorAll('.palette-color');
+  locked.length = 0;
+  els.forEach(el => {
+    const bg = el.style.backgroundColor;
+    const match = bg.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
+    if (match) {
+      const [_,r,g,b] = match.map(Number);
+      locked.push('#' + [r,g,b].map(v => v.toString(16).padStart(2,'0')).join(''));
+    }
+  });
+}
+
+function copy(hex) {
+  navigator.clipboard.writeText(hex);
+}
+
+function updatePresets() {
+  const presets = [
+    ['#ff6b6b','#feca57','#48dbfb','#ff9ff3','#54a0ff'],
+    ['#00b894','#00cec9','#6c5ce7','#fd79a8','#fdcb6e'],
+    ['#e17055','#fdcb6e','#00b894','#0984e3','#6c5ce7'],
+    ['#2d3436','#636e72','#b2bec3','#dfe6e9','#74b9ff'],
+    ['#ff7675','#74b9ff','#a29bfe','#55efc4','#fab1a0'],
+    ['#c0392b','#2980b9','#27ae60','#8e44ad','#f39c12'],
+  ];
+  document.getElementById('presets').innerHTML = presets.map(colors => 
+    `<div class="mini-palette" onclick="applyPreset(['${colors.join("','")}'])">${colors.map(c => `<div style="background:${c}"></div>`).join('')}</div>`
+  ).join('');
+}
+
+function applyPreset(colors) {
+  locked.length = 0;
+  colors.forEach((c,i) => locked[i] = c);
+  generate();
+}
+
+generate();
+</script>
+</body>
+</html>
